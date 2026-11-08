@@ -19,9 +19,25 @@ function ReportComplaintModal({ roadSegments, onClose, onSuccess }) {
   const [error, setError]     = useState('')
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [photoBase64, setPhotoBase64] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Photo must be under 2MB')
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPhotoBase64(reader.result)
+      setPhotoPreview(reader.result)
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e) => {
@@ -38,6 +54,7 @@ function ReportComplaintModal({ roadSegments, onClose, onSuccess }) {
       const payload = {
         ...formData,
         roadSegmentId: formData.roadSegmentId ? parseInt(formData.roadSegmentId) : null,
+        photoBase64: photoBase64,
       }
       await submitComplaint(payload)
       setSuccess(true)
@@ -119,6 +136,30 @@ function ReportComplaintModal({ roadSegments, onClose, onSuccess }) {
                   required
                 />
               </div>
+              <div style={styles.field}>
+                <label style={styles.label}>Photo Evidence (optional)</label>
+
+                {!photoPreview ? (
+                  <label style={styles.uploadBox}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      style={{ display: 'none' }}
+                    />
+                    <span style={styles.uploadIcon}>+</span>
+                    <span>Add a photo</span>
+                    <span style={styles.uploadHint}>JPG or PNG</span>
+                  </label>
+                ) : (
+                  <div style={styles.previewWrap}>
+                    <img src={photoPreview} alt="Preview" style={styles.previewImg} />
+                    <button type="button" style={styles.removePhotoBtn} onClick={() => setPhotoPreview(null)}>
+                      Remove photo
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div style={styles.actions}>
                 <button type="button" style={styles.cancelBtn} onClick={onClose}>
@@ -197,6 +238,19 @@ const styles = {
   },
   successTitle: { fontSize: '1.1rem', fontWeight: '700', color: '#1a1a2e', marginBottom: '0.5rem' },
   successText: { fontSize: '0.85rem', color: '#6b7280', lineHeight: 1.5 },
+  uploadBox: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    gap: '0.25rem', border: '1.5px dashed #d1d5db', borderRadius: '10px',
+    padding: '1.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.85rem', textAlign: 'center',
+  },
+  uploadIcon: {
+    width: '28px', height: '28px', borderRadius: '50%', background: '#f3f4f6',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#374151',
+  },
+  uploadHint: { fontSize: '0.75rem', color: '#9ca3af' },
+  previewWrap: { position: 'relative' },
+  previewImg: { width: '100%', maxHeight: '160px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #e5e7eb' },
+  removePhotoBtn: { marginTop: '0.5rem', background: 'none', border: 'none', color: '#dc2626', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', padding: 0 },
 }
 
 export default ReportComplaintModal
